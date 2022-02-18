@@ -3,6 +3,7 @@ import numpy as np
 import json
 import shutil
 import cv2
+from tqdm import tqdm
 
 ROOT_PATH = 'datasets/mix_det/'
 DATA_PATH = os.path.join(ROOT_PATH, 'annotations/train.json')
@@ -14,18 +15,18 @@ os.makedirs(LABELS_PATH, exist_ok=True)
 
 data = json.load(open(DATA_PATH))
 ext = 'jpg'
-for i in range(len(data['images'])):
+for i in tqdm(range(len(data['images']))):
     img_id = data['images'][i]['id']
     img_name = data['images'][i]['file_name']
     ext = img_name.split('.')[-1]
     img_path = os.path.join(ROOT_PATH, img_name)
-    print(img_path)
+    # print(img_path)
     new_path = IMGS_PATH + str(img_id) + '.' + ext
     shutil.move(img_path, new_path)
     labels = LABELS_PATH + str(img_id) + '.txt'
-    open(labels, 'w').close()
+    # open(labels, 'w').close()
 
-for i in range(len(data['annotations'])):
+for i in tqdm(range(len(data['annotations']))):
     img_id = data['annotations'][i]['image_id']
     img_path = IMGS_PATH + str(img_id) + '.' + ext
     img = cv2.imread(img_path)
