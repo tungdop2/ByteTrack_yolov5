@@ -37,6 +37,8 @@ if __name__ == '__main__':
                 continue
             if 'mot' in DATA_PATH and (split != 'test' and not ('FRCNN' in seq)):
                 continue
+            if (split == 'train' or split == 'train_half') and not ('FRCNN' in seq):
+                continue
             video_cnt += 1  # video sequence number.
             out['videos'].append({'id': video_cnt, 'file_name': seq})
             seq_path = os.path.join(data_path, seq)
