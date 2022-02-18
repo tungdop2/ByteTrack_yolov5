@@ -15,11 +15,15 @@ os.makedirs(LABELS_PATH, exist_ok=True)
 
 data = json.load(open(DATA_PATH))
 ext = 'jpg'
+imgs_size = {}
 for i in tqdm(range(len(data['images']))):
     img_id = data['images'][i]['id']
     img_name = data['images'][i]['file_name']
     ext = img_name.split('.')[-1]
     img_path = os.path.join(ROOT_PATH, img_name)
+    img = cv2.imread(img_path)
+    img_size = img.shape[:2]
+    imgs_size[img_id] = img_size
     # print(img_path)
     new_path = IMGS_PATH + str(img_id) + '.' + ext
     shutil.move(img_path, new_path)
@@ -29,8 +33,7 @@ for i in tqdm(range(len(data['images']))):
 for i in tqdm(range(len(data['annotations']))):
     img_id = data['annotations'][i]['image_id']
     img_path = IMGS_PATH + str(img_id) + '.' + ext
-    img = cv2.imread(img_path)
-    img_size = img.shape
+    img_size = imgs_size[img_id]
     x = data['annotations'][i]['bbox'][0]
     y = data['annotations'][i]['bbox'][1]
     w = data['annotations'][i]['bbox'][2]
