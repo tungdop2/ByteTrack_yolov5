@@ -18,7 +18,7 @@ for i in range(len(data['images'])):
     ext = img_name.split('.')[-1]
     img_path = 'datasets/' + img_name
     new_path = IMGS_PATH + str(img_id) + '.' + ext
-    shutil.copy(img_path, new_path)
+    shutil.move(img_path, new_path)
     labels = LABELS_PATH + str(img_id) + '.txt'
     open(labels, 'w').close()
 
