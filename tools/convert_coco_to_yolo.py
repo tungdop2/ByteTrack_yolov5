@@ -4,9 +4,11 @@ import json
 import shutil
 import cv2
 
-DATA_PATH = './datasets/ETHZ/annotations/train.json'
-IMGS_PATH = DATA_PATH.replace('annotations', 'images').replace('train.json', 'train/')
-LABELS_PATH = IMGS_PATH.replace('images', 'labels')
+ROOT_PATH = 'datasets/mix_det/'
+DATA_PATH = os.path.join(ROOT_PATH, 'annotations/train.json')
+print(DATA_PATH)
+IMGS_PATH = os.path.join(ROOT_PATH, 'images/train/')
+LABELS_PATH = os.path.join(ROOT_PATH, 'labels/train/')
 os.makedirs(IMGS_PATH, exist_ok=True)
 os.makedirs(LABELS_PATH, exist_ok=True)
 
@@ -16,7 +18,8 @@ for i in range(len(data['images'])):
     img_id = data['images'][i]['id']
     img_name = data['images'][i]['file_name']
     ext = img_name.split('.')[-1]
-    img_path = 'datasets/' + img_name
+    img_path = os.path.join(ROOT_PATH, img_name)
+    print(img_path)
     new_path = IMGS_PATH + str(img_id) + '.' + ext
     shutil.move(img_path, new_path)
     labels = LABELS_PATH + str(img_id) + '.txt'
