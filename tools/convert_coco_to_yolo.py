@@ -32,7 +32,6 @@ for i in tqdm(range(len(data['images']))):
 
 for i in tqdm(range(len(data['annotations']))):
     img_id = data['annotations'][i]['image_id']
-    img_path = IMGS_PATH + str(img_id) + '.' + ext
     img_size = imgs_size[img_id]
     x = data['annotations'][i]['bbox'][0]
     y = data['annotations'][i]['bbox'][1]
