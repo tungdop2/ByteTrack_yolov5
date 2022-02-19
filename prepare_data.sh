@@ -1,6 +1,7 @@
 mkdir datasets
 cd datasets
-pip install -U --no-cache-dir gdown --pre
+pip uninstall -y gdown
+pip install -U --no-cache-dir gdown
 
 mkdir crowdhuman
 cd crowdhuman
