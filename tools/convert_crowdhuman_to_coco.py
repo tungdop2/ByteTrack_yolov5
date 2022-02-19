@@ -2,6 +2,7 @@ import os
 import numpy as np
 import json
 from PIL import Image
+from tqdm import tqdm
 
 DATA_PATH = 'datasets/crowdhuman/'
 OUT_PATH = DATA_PATH + 'annotations/'
@@ -28,7 +29,7 @@ if __name__ == '__main__':
         image_cnt = 0
         ann_cnt = 0
         video_cnt = 0
-        for ann_data in anns_data:
+        for ann_data in tqdm(anns_data):
             image_cnt += 1
             file_path = DATA_PATH + 'CrowdHuman_{}/'.format(split) + '{}.jpg'.format(ann_data['ID'])
             im = Image.open(file_path)

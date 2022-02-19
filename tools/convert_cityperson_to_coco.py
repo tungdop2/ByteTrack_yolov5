@@ -2,6 +2,7 @@ import os
 import numpy as np
 import json
 from PIL import Image
+from tqdm import tqdm
 
 DATA_PATH = 'datasets/Cityscapes/'
 DATA_FILE_PATH = 'datasets/data_path/citypersons.train'
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     image_cnt = 0
     ann_cnt = 0
     video_cnt = 0
-    for img_path, label_path in zip(img_paths, label_paths):
+    for img_path, label_path in tqdm(zip(img_paths, label_paths)):
         image_cnt += 1
         im = Image.open(os.path.join("datasets", img_path))
         image_info = {'file_name': img_path, 

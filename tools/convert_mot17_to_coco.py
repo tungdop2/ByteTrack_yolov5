@@ -2,6 +2,7 @@ import os
 import numpy as np
 import json
 import cv2
+from tqdm import tqdm
 
 
 # Use the same script for MOT16
@@ -32,7 +33,7 @@ if __name__ == '__main__':
         video_cnt = 0
         tid_curr = 0
         tid_last = -1
-        for seq in sorted(seqs):
+        for seq in tqdm(sorted(seqs)):
             if '.DS_Store' in seq:
                 continue
             if 'mot' in DATA_PATH and (split != 'test' and not ('FRCNN' in seq)):
