@@ -1,3 +1,6 @@
+pip uninstall -y gdown
+pip install gdown
+
 mkdir datasets
 cd datasets
 
@@ -22,6 +25,24 @@ rm -r CrowdHuman_val.zip
 mv Images/ CrowdHuman_val
 
 cd ..
+
+gdown --id 19QyGOCqn8K_rc9TXJ8UwLSxCx17e0GoY
+unzip ETHZ.zip
+rm -r ETHZ.zip
+
+gdown --id 1DgLHqEkQUOj63mCrS_0UGFEM9BG8sIZs
+gdown --id 1BH9Xz59UImIGUdYwUR-cnP1g7Ton_LcZ
+gdown --id 1q_OltirP68YFvRWgYkBHLEFSUayjkKYE
+gdown --id 1VSL0SFoQxPXnIdBamOZJzHrHJ1N2gsTW
+zip -s- Citypersons.zip -O combine.zip
+unzip combine.zip
+rm -r combine.zip
+mv Citypersons Cityscapes
+rm -r Citypersons.zip
+rm -r Citypersons.z01
+rm -r Citypersons.z02
+rm -r Citypersons.z03
+
 wget https://motchallenge.net/data/MOT17.zip
 unzip MOT17.zip
 mv MOT17 mot
