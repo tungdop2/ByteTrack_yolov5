@@ -1,6 +1,3 @@
-pip uninstall -y gdown
-pip install gdown
-
 mkdir datasets
 cd datasets
 
