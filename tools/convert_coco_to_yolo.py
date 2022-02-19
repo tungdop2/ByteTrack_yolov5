@@ -37,6 +37,10 @@ for i in tqdm(range(len(data['annotations']))):
     y = data['annotations'][i]['bbox'][1]
     w = data['annotations'][i]['bbox'][2]
     h = data['annotations'][i]['bbox'][3]
+    if (w < 0 or h < 0):
+        continue
+    if (w > img_size[1] or h > img_size[0]):
+        continue
     if (x < 0):
         w = w + x
         x = 0
