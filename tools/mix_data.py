@@ -12,6 +12,7 @@ def mix_data(list_folder):
     video_list = list()
     category_list = list()
     for i, folder in enumerate(list_folder):
+        os.symlink('../' + folder, 'mix_det/' + folder + '_train/')
         if i == 0:
             data_json = json.load(open('datasets/' + folder + '/annotations/train.json','r'))
             print('img')

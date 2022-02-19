@@ -1,5 +1,5 @@
-# mkdir datasets
-# cd datasets
+mkdir datasets
+cd datasets
 
 # mkdir crowdhuman
 # cd crowdhuman
