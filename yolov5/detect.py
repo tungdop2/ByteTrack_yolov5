@@ -130,6 +130,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
         # NMS
         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+        print(pred)
         dt[2] += time_sync() - t3
 
         # Second-stage classifier (optional)

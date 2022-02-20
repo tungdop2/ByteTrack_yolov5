@@ -6,9 +6,9 @@ import copy
 import torch
 import torch.nn.functional as F
 
-from .kalman_filter import KalmanFilter
-from yolox.tracker import matching
-from .basetrack import BaseTrack, TrackState
+from tracker.kalman_filter import KalmanFilter
+from tracker import matching
+from tracker.basetrack import BaseTrack, TrackState
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
@@ -171,6 +171,7 @@ class BYTETracker(object):
             scores = output_results[:, 4] * output_results[:, 5]
             bboxes = output_results[:, :4]  # x1y1x2y2
         img_h, img_w = img_info[0], img_info[1]
+        print(img_h, img_w, img_size)
         scale = min(img_size[0] / float(img_h), img_size[1] / float(img_w))
         bboxes /= scale
 

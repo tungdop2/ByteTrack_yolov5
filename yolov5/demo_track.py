@@ -5,16 +5,15 @@ import cv2
 
 import torch
 
+
 from utils.visualize import plot_tracking
 from tracker.byte_tracker import BYTETracker
 from tracking_utils.timer import Timer
-
+from utils.boxes import postprocess
 import argparse
 import os
 import time
-from models.experimental import attempt_load
 from models.common import DetectMultiBackend
-from utils.general import check_img_size, non_max_suppression
 from utils.augmentations import letterbox
 
 
@@ -43,28 +42,20 @@ def make_parser():
     parser.add_argument(
         "--save_name",
         type=str,
-        default="MOT17-02-FRCNN",
+        default="test",
         help="save name for results txt/video",
     )
 
-    # exp file
-    parser.add_argument(
-        "-f",
-        "--exp_file",
-        default=None,
-        type=str,
-        help="pls input your expriment description file",
-    )
-    parser.add_argument("-c", "--ckpt", default="./yolov5/weights/bests.pt", type=str, help="ckpt for eval")
+    parser.add_argument("-c", "--ckpt", default="weights/crowdhuman_yolov5m.pt", type=str, help="ckpt for eval")
     parser.add_argument(
         "--device",
         default="gpu",
         type=str,
         help="device to run our model, can either be cpu or gpu",
     )
-    parser.add_argument("--conf", default=None, type=float, help="test conf")
-    parser.add_argument("--nms", default=None, type=float, help="test nms threshold")
-    parser.add_argument("--tsize", default=None, type=int, help="test img size")
+    parser.add_argument("--conf", default=0.001, type=float, help="test conf")
+    parser.add_argument("--nms", default=0.7, type=float, help="test nms threshold")
+    parser.add_argument("--tsize", default=(384, 640), type=tuple, help="test image size")
     parser.add_argument(
         "--fp16",
         dest="fp16",
@@ -116,7 +107,8 @@ class Predictor(object):
     def __init__(
         self,
         model,
-        exp,
+        # exp,
+        num_classes, conf_thresh, nms_thresh, test_size,
         trt_file=None,
         decoder=None,
         device="cpu",
@@ -124,10 +116,10 @@ class Predictor(object):
     ):
         self.model = model
         self.decoder = decoder
-        self.num_classes = exp.num_classes # 1
-        self.confthre = exp.test_conf
-        self.nmsthre = exp.nmsthre
-        self.test_size = exp.test_size
+        self.num_classes = num_classes # 1
+        self.confthre = conf_thresh
+        self.nmsthre = nms_thresh
+        self.test_size = test_size
         self.device = device
         self.fp16 = fp16
         if trt_file is not None:
@@ -136,11 +128,8 @@ class Predictor(object):
             model_trt = TRTModule()
             model_trt.load_state_dict(torch.load(trt_file))
 
-            x = torch.ones(1, 3, exp.test_size[0], exp.test_size[1]).cuda()
+            x = torch.ones(1, 3, test_size[0], test_size[1]).cuda()
             self.model(x)
-            self.model = model_trt
-        self.rgb_means = (0.485, 0.456, 0.406)
-        self.std = (0.229, 0.224, 0.225)
 
     def inference(self, img, timer):
         img_info = {"id": 0}
@@ -155,14 +144,6 @@ class Predictor(object):
         img_info["width"] = width
         img_info["raw_img"] = img
 
-        # img, ratio = preproc(img, self.test_size, self.rgb_means, self.std)
-        # img_info["ratio"] = ratio
-        # img = torch.from_numpy(img).unsqueeze(0)
-        # img = img.float()
-        # if self.device == "gpu":
-        #     img = img.cuda()
-        #     if self.fp16:
-        #         img = img.half()  # to FP16
 
         img = letterbox(img, self.test_size)[0]
         # print('letterbox:', img.shape)
@@ -214,12 +195,12 @@ def save_outputs(outputs, folder, save_name):
             
 
 
-def image_demo(predictor, vis_folder, path, current_time, save_result, save_name):
+def image_demo(predictor, vis_folder, path, current_time, save_result, save_name, test_size):
     if os.path.isdir(path):
         files = get_image_list(path)
     else:
         files = [path]
-    files.sort()
+    files.sort(key=lambda x: int(x.split('/')[-1][:-4]))
     tracker = BYTETracker(args, frame_rate=30)
     timer = Timer()
     frame_id = 0
@@ -231,10 +212,11 @@ def image_demo(predictor, vis_folder, path, current_time, save_result, save_name
         save_outputs(outputs, save_name, image_name)
 
         if outputs[0] is not None:
-            online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], exp.test_size)
+            online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], test_size)
             # print('height:', img_info['height'], 'width:', img_info['width'])
             # print('test size:', exp.test_size)
             print('online_targets:', len(online_targets))
+            # print(online_targets)
             online_tlwhs = []
             online_ids = []
             online_scores = []
@@ -306,7 +288,7 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
 
             # for i, det in enumerate(outputs):
             if outputs[0] is not None:
-                online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], exp.test_size)
+                online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], test_size)
                 online_tlwhs = []
                 online_ids = []
                 online_scores = []
@@ -336,11 +318,11 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
         frame_id += 1
 
 
-def main(exp, args):
-    if not args.experiment_name:
-        args.experiment_name = exp.exp_name
+def main(args):
+    # if not args.experiment_name:
+    #     args.experiment_name = exp.exp_name
 
-    file_name = os.path.join(exp.output_dir, args.experiment_name)
+    file_name = os.path.join('yolov5_outputs', args.save_name)
     os.makedirs(file_name, exist_ok=True)
 
     if args.save_result:
@@ -352,19 +334,16 @@ def main(exp, args):
 
     logger.info("Args: {}".format(args))
 
-    if args.conf is not None:
-        exp.test_conf = args.conf
-    if args.nms is not None:
-        exp.nmsthre = args.nms
-    if args.tsize is not None:
-        exp.test_size = (args.tsize, args.tsize)
+    conf_thresh = args.conf
+    nms_thresh = args.nms
+    test_size = args.tsize
+
 
     ckpt_file = args.ckpt
     model = DetectMultiBackend(ckpt_file, device='cuda')
-    model.eval()
-    
     if args.fp16:
-        model = model.half()  # to FP16
+        model.model.half()
+    model.eval()
 
     if args.trt:
         assert not args.fuse, "TensorRT model is not support model fusing!"
@@ -379,16 +358,15 @@ def main(exp, args):
         trt_file = None
         decoder = None
 
-    predictor = Predictor(model, exp, trt_file, decoder, args.device, args.fp16)
+    predictor = Predictor(model, 1, conf_thresh, nms_thresh, test_size, trt_file, decoder, args.device)
     current_time = time.localtime()
     if args.demo == "image":
-        image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.save_name)
+        image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.save_name, (608, 1088))
     elif args.demo == "video" or args.demo == "webcam":
         imageflow_demo(predictor, vis_folder, current_time, args)
 
 
 if __name__ == "__main__":
     args = make_parser().parse_args()
-    exp = get_exp(args.exp_file, args.name)
 
-    main(exp, args)
+    main(args)
