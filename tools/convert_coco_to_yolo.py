@@ -45,6 +45,11 @@ for i in tqdm(range(len(data['annotations']))):
     if (y < 0):
         h = h + y
         y = 0
+    if (x + w > img_size[1]):
+        w = img_size[1] - x
+    if (y + h > img_size[0]): 
+        h = img_size[0] - y   
+                
     x = x + w/2
     y = y + h/2
     x = x/img_size[1]
