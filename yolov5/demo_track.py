@@ -5,17 +5,17 @@ import cv2
 
 import torch
 
-from yolov5.utils.visualize import plot_tracking
-from yolov5.tracker.byte_tracker import BYTETracker
-from yolov5.tracking_utils.timer import Timer
+from utils.visualize import plot_tracking
+from tracker.byte_tracker import BYTETracker
+from tracking_utils.timer import Timer
 
 import argparse
 import os
 import time
-from yolov5.models.experimental import attempt_load
-from yolov5.models.common import DetectMultiBackend
-from yolov5.utils.general import check_img_size, non_max_suppression
-from yolov5.utils.augmentations import letterbox
+from models.experimental import attempt_load
+from models.common import DetectMultiBackend
+from utils.general import check_img_size, non_max_suppression
+from utils.augmentations import letterbox
 
 
 IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
@@ -71,13 +71,6 @@ def make_parser():
         default=False,
         action="store_true",
         help="Adopting mix precision evaluating.",
-    )
-    parser.add_argument(
-        "--fuse",
-        dest="fuse",
-        default=False,
-        action="store_true",
-        help="Fuse conv and bn for testing.",
     )
     parser.add_argument(
         "--trt",
@@ -369,10 +362,6 @@ def main(exp, args):
     ckpt_file = args.ckpt
     model = DetectMultiBackend(ckpt_file, device='cuda')
     model.eval()
-
-    if args.fuse:
-        logger.info("\tFusing model...")
-        model = fuse_model(model)
     
     if args.fp16:
         model = model.half()  # to FP16
