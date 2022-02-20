@@ -15,6 +15,7 @@ import os
 import time
 from models.common import DetectMultiBackend
 from utils.augmentations import letterbox
+from utils.general import non_max_suppression
 
 
 IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
@@ -26,7 +27,6 @@ def make_parser():
     parser.add_argument(
         "demo", default="image", help="demo type, eg. image, video and webcam"
     )
-    parser.add_argument("-expn", "--experiment-name", type=str, default=None)
     parser.add_argument("-n", "--name", type=str, default=None, help="model name")
 
     parser.add_argument(
@@ -54,8 +54,8 @@ def make_parser():
         help="device to run our model, can either be cpu or gpu",
     )
     parser.add_argument("--conf", default=0.001, type=float, help="test conf")
-    parser.add_argument("--nms", default=0.7, type=float, help="test nms threshold")
-    parser.add_argument("--tsize", default=(384, 640), type=tuple, help="test image size")
+    parser.add_argument("--nms", default=0.45, type=float, help="test nms threshold")
+    parser.add_argument("--tsize", default=(608, 1088), type=tuple, help="test image size")
     parser.add_argument(
         "--fp16",
         dest="fp16",
@@ -75,7 +75,7 @@ def make_parser():
     parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
     parser.add_argument("--match_thresh", type=float, default=0.8, help="matching threshold for tracking")
     parser.add_argument('--min-box-area', type=float, default=10, help='filter out tiny boxes')
-    parser.add_argument("--mot20", dest="mot20", default=False, action="store_true", help="test mot20.")
+    # parser.add_argument("--mot20", dest="mot20", default=False, action="store_true", help="test mot20.")
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     return parser
 
@@ -110,12 +110,10 @@ class Predictor(object):
         # exp,
         num_classes, conf_thresh, nms_thresh, test_size,
         trt_file=None,
-        decoder=None,
         device="cpu",
         fp16=False
     ):
         self.model = model
-        self.decoder = decoder
         self.num_classes = num_classes # 1
         self.confthre = conf_thresh
         self.nmsthre = nms_thresh
@@ -154,6 +152,7 @@ class Predictor(object):
         img = torch.from_numpy(img).cuda()
         img = img.half() if self.fp16 else img.float()  # uint8 to fp16/32
         img /= 255  # 0 - 255 to 0.0 - 1.0
+        # print(img)
         if len(img.shape) == 3:
             img = img[None]  # expand for batch dim
 
@@ -161,11 +160,15 @@ class Predictor(object):
             timer.tic()
             # print('image shape:', img.size())
             # print(img)
-            outputs = self.model(img)
-            if self.decoder is not None:
-                outputs = self.decoder(outputs, dtype=outputs.type())
+            outputs = self.model(img, False, False)
+            # if self.decoder is not None:
+            #     outputs = self.decoder(outputs, dtype=outputs.type())
             # print('before nms:', outputs.size())
             outputs = postprocess(outputs, self.num_classes, self.confthre, self.nmsthre, classes=[0])
+            # outputs = non_max_suppression(outputs, 0.1, 0.45, classes=[0], max_det=1000)
+            # print(outputs[0].shape)
+            # print('after nms:', outputs.size())
+            timer.toc()
             # print(outputs[0].cpu().numpy())
             # try: 
             #     print('detect num:', len(outputs[0]))
@@ -351,17 +354,15 @@ def main(args):
         assert os.path.exists(
             trt_file
         ), "TensorRT model is not found!\n Run python3 tools/trt.py first!"
-        model.head.decode_in_inference = False
-        decoder = model.head.decode_outputs
+        model.head.decode_in_inference = False 
         logger.info("Using TensorRT to inference")
     else:
         trt_file = None
-        decoder = None
 
-    predictor = Predictor(model, 1, conf_thresh, nms_thresh, test_size, trt_file, decoder, args.device)
+    predictor = Predictor(model, 1, conf_thresh, nms_thresh, test_size, trt_file, args.device, args.fp16)
     current_time = time.localtime()
     if args.demo == "image":
-        image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.save_name, (608, 1088))
+        image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.save_name, test_size)
     elif args.demo == "video" or args.demo == "webcam":
         imageflow_demo(predictor, vis_folder, current_time, args)
 
