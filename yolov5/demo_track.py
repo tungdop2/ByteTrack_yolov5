@@ -74,9 +74,9 @@ def make_parser():
     parser.add_argument("--track_thresh", type=float, default=0.5, help="tracking confidence threshold")
     parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
     parser.add_argument("--match_thresh", type=float, default=0.8, help="matching threshold for tracking")
-    parser.add_argument('--min-box-area', type=float, default=1, help='filter out tiny boxes')
+    parser.add_argument('--min-box-area', type=float, default=10, help='filter out tiny boxes')
     parser.add_argument(
-        "--aspect_ratio_thresh", type=float, default=1,
+        "--aspect_ratio_thresh", type=float, default=1.6,
         help="threshold for filtering out boxes of which aspect ratio are above the given value."
     )
     return parser
@@ -214,8 +214,7 @@ def image_demo(predictor, vis_folder, path, current_time, save_result, save_name
         if frame_id % 20 == 0:
             logger.info('Processing frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, timer.average_time)))
         outputs, img_info = predictor.inference(image_name, timer)
-        # save_outputs(outputs, save_name, image_name)
-        print(outputs[0].cpu().numpy())
+        save_outputs(outputs, save_name, image_name)
         if outputs[0] is not None:
             online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], test_size)
             # print('height:', img_info['height'], 'width:', img_info['width'])
@@ -360,7 +359,7 @@ def main(args):
     else:
         trt_file = None
 
-    predictor = Predictor(model, 1, conf_thresh, nms_thresh, test_size, trt_file, args.device, args.fp16)
+    predictor = Predictor(model, 2, conf_thresh, nms_thresh, test_size, trt_file, args.device, args.fp16)
     current_time = time.localtime()
     if args.demo == "image":
         image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.save_name, test_size)
