@@ -30,8 +30,8 @@ def make_parser():
     parser.add_argument("-n", "--name", type=str, default=None, help="model name")
 
     parser.add_argument(
-        # "--path", default="./datasets/mot/train/MOT17-02-FRCNN/img1", help="path to images or video"
-        "--path", default="./videos/16h-17h.mp4", help="path to images or video"
+        "--path", default="./datasets/mot/train/MOT17-02-FRCNN/img1", help="path to images or video"
+        # "--path", default="./videos/16h-17h.mp4", help="path to images or video"
     )
     parser.add_argument("--camid", type=int, default=0, help="webcam demo camera id")
     parser.add_argument(
@@ -75,8 +75,10 @@ def make_parser():
     parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
     parser.add_argument("--match_thresh", type=float, default=0.8, help="matching threshold for tracking")
     parser.add_argument('--min-box-area', type=float, default=10, help='filter out tiny boxes')
-    # parser.add_argument("--mot20", dest="mot20", default=False, action="store_true", help="test mot20.")
-    parser.add_argument('--augment', action='store_true', help='augmented inference')
+    parser.add_argument(
+        "--aspect_ratio_thresh", type=float, default=1.6,
+        help="threshold for filtering out boxes of which aspect ratio are above the given value."
+    )
     return parser
 
 def get_image_list(path):
@@ -164,7 +166,7 @@ class Predictor(object):
             # if self.decoder is not None:
             #     outputs = self.decoder(outputs, dtype=outputs.type())
             # print('before nms:', outputs.size())
-            outputs = postprocess(outputs, self.num_classes, self.confthre, self.nmsthre, classes=[0])
+            outputs = postprocess(outputs, self.num_classes, self.confthre, self.nmsthre)
             # outputs = non_max_suppression(outputs, 0.1, 0.45, classes=[0], max_det=1000)
             # print(outputs[0].shape)
             # print('after nms:', outputs.size())
@@ -226,8 +228,7 @@ def image_demo(predictor, vis_folder, path, current_time, save_result, save_name
             for t in online_targets:
                 tlwh = t.tlwh
                 tid = t.track_id
-                vertical = tlwh[2] / tlwh[3] > 1.6
-
+                vertical = tlwh[2] / tlwh[3] > args.aspect_ratio_thresh
                 if tlwh[2] * tlwh[3] > args.min_box_area and not vertical:
                     online_tlwhs.append(tlwh)
                     online_ids.append(tid)
@@ -298,7 +299,7 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                 for t in online_targets:
                     tlwh = t.tlwh
                     tid = t.track_id
-                    vertical = tlwh[2] / tlwh[3] > 1.6
+                    vertical = tlwh[2] / tlwh[3] > args.aspect_ratio_thresh
                     if tlwh[2] * tlwh[3] > args.min_box_area and not vertical:
                         online_tlwhs.append(tlwh)
                         online_ids.append(tid)
