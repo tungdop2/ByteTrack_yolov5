@@ -53,7 +53,7 @@ def make_parser():
         type=str,
         help="device to run our model, can either be cpu or gpu",
     )
-    parser.add_argument("--conf", default=0.001, type=float, help="test conf")
+    parser.add_argument("--conf", default=0.1, type=float, help="test conf")
     parser.add_argument("--nms", default=0.45, type=float, help="test nms threshold")
     parser.add_argument("--tsize", default=(608, 1088), type=tuple, help="test image size")
     parser.add_argument(
@@ -74,9 +74,9 @@ def make_parser():
     parser.add_argument("--track_thresh", type=float, default=0.5, help="tracking confidence threshold")
     parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
     parser.add_argument("--match_thresh", type=float, default=0.8, help="matching threshold for tracking")
-    parser.add_argument('--min-box-area', type=float, default=10, help='filter out tiny boxes')
+    parser.add_argument('--min-box-area', type=float, default=1, help='filter out tiny boxes')
     parser.add_argument(
-        "--aspect_ratio_thresh", type=float, default=1.6,
+        "--aspect_ratio_thresh", type=float, default=1,
         help="threshold for filtering out boxes of which aspect ratio are above the given value."
     )
     return parser
@@ -165,11 +165,11 @@ class Predictor(object):
             outputs = self.model(img, False, False)
             # if self.decoder is not None:
             #     outputs = self.decoder(outputs, dtype=outputs.type())
-            # print('before nms:', outputs.size())
+            print('before nms:', outputs.size())
             outputs = postprocess(outputs, self.num_classes, self.confthre, self.nmsthre)
             # outputs = non_max_suppression(outputs, 0.1, 0.45, classes=[0], max_det=1000)
             # print(outputs[0].shape)
-            # print('after nms:', outputs.size())
+            print('after nms:', outputs[0].size())
             timer.toc()
             # print(outputs[0].cpu().numpy())
             # try: 
@@ -183,12 +183,12 @@ class Predictor(object):
 
 def save_outputs(outputs, folder, save_name):
     sn = save_name.split('/')[-1].replace('.jpg', '.txt')
-    if not os.path.exists('yolov5_outputs'):
-        os.mkdir('yolov5_outputs')
+    # if not os.path.exists('yolov5_outputs'):
+    #     os.mkdir('yolov5_outputs')
 
-    sn = os.path.join('yolov5_outputs', folder, sn)
-    if not os.path.exists(os.path.join('yolov5_outputs', folder)):
-        os.mkdir(os.path.join('yolov5_outputs', folder))
+    sn = os.path.join('runs', folder, sn)
+    # if not os.path.exists(os.path.join('yolov5_outputs', folder)):
+    #     os.mkdir(os.path.join('yolov5_outputs', folder))
     # open or creat new file if dont exist
     with open(sn, 'w') as f:
         if outputs[0] is not None:
@@ -214,8 +214,8 @@ def image_demo(predictor, vis_folder, path, current_time, save_result, save_name
         if frame_id % 20 == 0:
             logger.info('Processing frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, timer.average_time)))
         outputs, img_info = predictor.inference(image_name, timer)
-        save_outputs(outputs, save_name, image_name)
-
+        # save_outputs(outputs, save_name, image_name)
+        print(outputs[0].cpu().numpy())
         if outputs[0] is not None:
             online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], test_size)
             # print('height:', img_info['height'], 'width:', img_info['width'])
@@ -247,7 +247,8 @@ def image_demo(predictor, vis_folder, path, current_time, save_result, save_name
             save_folder = os.path.join(
                 vis_folder, save_name
             )
-            os.makedirs(save_folder, exist_ok=True)
+            if not os.path.exists(save_folder):
+                os.makedirs(save_folder)
             save_file_name = os.path.join(save_folder, os.path.basename(image_name))
             print("Save tracked image to {}".format(save_file_name))
             cv2.imwrite(save_file_name, online_im)
@@ -326,12 +327,11 @@ def main(args):
     # if not args.experiment_name:
     #     args.experiment_name = exp.exp_name
 
-    file_name = os.path.join('yolov5_outputs', args.save_name)
+    file_name = os.path.join('runs', '')
     os.makedirs(file_name, exist_ok=True)
-
-    if args.save_result:
-        vis_folder = os.path.join(file_name, "track_vis")
-        os.makedirs(vis_folder, exist_ok=True)
+    vis_folder = os.path.join(file_name, "track")
+    os.makedirs(vis_folder, exist_ok=True)
+        
 
     if args.trt:
         args.device = "gpu"
