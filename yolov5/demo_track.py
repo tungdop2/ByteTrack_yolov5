@@ -53,6 +53,7 @@ def make_parser():
         type=str,
         help="device to run our model, can either be cpu or gpu",
     )
+    parser.add_argument("--num_classes", type=int, default=1, help="number of classes")
     parser.add_argument("--conf", default=0.1, type=float, help="test conf")
     parser.add_argument("--nms", default=0.45, type=float, help="test nms threshold")
     parser.add_argument("--tsize", default=(608, 1088), type=tuple, help="test image size")
@@ -292,7 +293,7 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
 
             # for i, det in enumerate(outputs):
             if outputs[0] is not None:
-                online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], test_size)
+                online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], args.tsize)
                 online_tlwhs = []
                 online_ids = []
                 online_scores = []
@@ -339,8 +340,7 @@ def main(args):
 
     conf_thresh = args.conf
     nms_thresh = args.nms
-    test_size = args.tsize
-
+    num_classes = args.num_classes
 
     ckpt_file = args.ckpt
     model = DetectMultiBackend(ckpt_file, device='cuda')
@@ -359,15 +359,16 @@ def main(args):
     else:
         trt_file = None
 
-    predictor = Predictor(model, 2, conf_thresh, nms_thresh, test_size, trt_file, args.device, args.fp16)
+    predictor = Predictor(model, num_classes, conf_thresh, nms_thresh, args.tsize, trt_file, args.device, args.fp16)
     current_time = time.localtime()
     if args.demo == "image":
-        image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.save_name, test_size)
+        image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.save_name, args.tsize)
     elif args.demo == "video" or args.demo == "webcam":
         imageflow_demo(predictor, vis_folder, current_time, args)
 
 
 if __name__ == "__main__":
     args = make_parser().parse_args()
-
+    assert args.demo in ["image", "video", "webcam"], "demo type not supported, only support [image, video, webcam]"
+    assert args.tsize in [(800, 1440), (608, 1088)], "tsize not supported, only (800, 1440) and (608, 1088)"
     main(args)
